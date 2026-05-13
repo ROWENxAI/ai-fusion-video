@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { XMarkdown } from "@ant-design/x-markdown";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface StreamMarkdownProps {
@@ -17,15 +18,33 @@ export function StreamMarkdown({
   compact = false,
   className,
 }: StreamMarkdownProps) {
+  const { resolvedTheme } = useTheme();
+  const markdownThemeClass =
+    resolvedTheme === "light" ? "x-markdown-light" : "x-markdown-dark";
+
   const markdownStyle = {
     "--font-size": compact ? "11px" : "12px",
     "--code-inline-text": compact ? "0.82em" : "0.84em",
+    "--primary-color": "var(--primary)",
+    "--primary-color-hover": "var(--primary)",
+    "--heading-color": "var(--foreground)",
+    "--text-color": "var(--foreground)",
+    "--border-color": "var(--border)",
+    "--line-color": "var(--border)",
+    "--light-bg": "var(--muted)",
+    "--dark-bg": "var(--muted)",
+    "--table-head-bg": "var(--muted)",
+    "--table-body-bg": "var(--card)",
+    "--cite-bg": "var(--muted)",
+    "--cite-hover-bg": "var(--accent)",
+    "--xmd-tail-color": "var(--foreground)",
     lineHeight: compact ? 1.6 : 1.65,
   } as CSSProperties;
 
   return (
     <XMarkdown
       content={content}
+      rootClassName={markdownThemeClass}
       streaming={
         streaming
           ? { hasNextChunk: true, tail: true, enableAnimation: true }
@@ -33,7 +52,7 @@ export function StreamMarkdown({
       }
       style={markdownStyle}
       className={cn(
-        "min-w-0 break-words text-foreground/90",
+        "min-w-0 break-words",
         compact
           ? "[&_ol]:my-1.5 [&_p]:my-1.5 [&_pre]:my-1.5 [&_ul]:my-1.5"
           : "[&_ol]:my-2 [&_p]:my-2 [&_pre]:my-2 [&_ul]:my-2",
