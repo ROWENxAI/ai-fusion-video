@@ -1,12 +1,16 @@
 "use client";
 
-import { Film, GripVertical, Plus, Trash2, ImageIcon, Video, Play, ZoomIn, X } from "lucide-react";
+import { Film, GripVertical, Plus, Trash2, ImageIcon, Video, Play, ZoomIn, X, User, MapPin, Package } from "lucide-react";
 import { VideoPreviewDialog } from "@/components/dashboard/video-preview-dialog";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/api/client";
 import type { StoryboardItem } from "@/lib/api/storyboard";
 import { EditableCell } from "./editable-cell";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+
+const TOOLTIP_CONTENT_CLASS = "flex flex-col gap-0.5 items-start text-left max-w-[220px] px-2.5 py-1.5 rounded-lg text-[11px] bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 text-zinc-900 dark:text-zinc-50 shadow-lg [&_.bg-foreground]:bg-white/85 [&_.fill-foreground]:fill-white/85 dark:[&_.bg-foreground]:bg-zinc-900/85 dark:[&_.fill-foreground]:fill-zinc-900/85";
+
 
 /** 安全解析 ID 数组 */
 function parseIds(raw: number[] | string | null | undefined): number[] {
@@ -27,7 +31,7 @@ function parseIds(raw: number[] | string | null | undefined): number[] {
 function getAssetDisplayName(subItemName: string | null | undefined, parentAssetName: string) {
   const subName = subItemName?.trim();
   const parentName = parentAssetName.trim();
-  if (!subName || subName === "默认" || subName === "默认变体" || subName === "初始") {
+  if (!subName || subName === "默认" || subName === "默认变体" || subName === "初始" || subName === parentName) {
     return parentName;
   }
   return `${subName} (${parentName})`;
@@ -388,21 +392,29 @@ export function StoryboardTableView({
                               preload="metadata"
                               playsInline
                             />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectItem(item.id);
-                                const rawVideoUrl = item.generatedVideoUrl || item.videoUrl;
-                                if (rawVideoUrl) {
-                                  setPreviewVideoUrl(rawVideoUrl);
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onSelectItem(item.id);
+                                      const rawVideoUrl = item.generatedVideoUrl || item.videoUrl;
+                                      if (rawVideoUrl) {
+                                        setPreviewVideoUrl(rawVideoUrl);
+                                      }
+                                    }}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/video:bg-black/40 transition-colors"
+                                  >
+                                    <Play className="h-3.5 w-3.5 text-white/90 fill-white/90" />
+                                  </button>
                                 }
-                              }}
-                              className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/video:bg-black/40 transition-colors"
-                              title="预览视频"
-                            >
-                              <Play className="h-3.5 w-3.5 text-white/90 fill-white/90" />
-                            </button>
+                              />
+                              <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                                预览视频
+                              </TooltipContent>
+                            </Tooltip>
                           </>
                         ) : (
                           <Video className="h-3.5 w-3.5 text-muted-foreground/30" />
@@ -437,78 +449,148 @@ export function StoryboardTableView({
                           }
 
                           return (
-                            <div className="flex flex-wrap gap-1 justify-center w-full max-h-[80px] overflow-hidden">
-                              {/* 角色 */}
-                              {charItems.map((ci, idx) => (
-                                <div
-                                  key={`char-${idx}`}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 max-w-full text-[10px] shrink-0"
-                                  title={`角色: ${getAssetDisplayName(ci.item.name, ci.asset.name)}`}
-                                >
-                                  {ci.item.imageUrl && (
-                                    <img
-                                      src={resolveMediaUrl(ci.item.imageUrl) || ""}
-                                      alt="avatar"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewImageUrl(ci.item.imageUrl!);
-                                        setPreviewImageTitle(`角色: ${getAssetDisplayName(ci.item.name, ci.asset.name)}`);
-                                      }}
-                                      className="h-3.5 w-3.5 rounded-xs object-cover cursor-zoom-in hover:scale-110 active:scale-95 transition-transform"
+                            <div className="flex items-center justify-center w-full py-1">
+                              <div className="flex items-center justify-start gap-2.5 max-w-full overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/35 pb-1.5 -mb-0.5 px-1.5">
+                                {/* 角色 */}
+                                {charItems.map((ci, idx) => (
+                                  <Tooltip key={`char-${idx}`}>
+                                    <TooltipTrigger
+                                      render={
+                                        <div className="flex flex-col items-center gap-1 group/asset cursor-pointer select-none shrink-0">
+                                          <div className="relative">
+                                            {ci.item.imageUrl ? (
+                                              <img
+                                                src={resolveMediaUrl(ci.item.imageUrl) || ""}
+                                                alt="avatar"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setPreviewImageUrl(ci.item.imageUrl!);
+                                                  setPreviewImageTitle(`角色: ${getAssetDisplayName(ci.item.name, ci.asset.name)}`);
+                                                }}
+                                                className="h-8 w-8 rounded-full object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
+                                              />
+                                            ) : (
+                                              <div className="h-8 w-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
+                                                <User className="h-4 w-4" />
+                                              </div>
+                                            )}
+                                          </div>
+                                          <span className="text-[10px] font-semibold text-blue-500 dark:text-blue-400 truncate max-w-[56px] leading-tight text-center mt-0.5">
+                                            {getAssetDisplayName(ci.item.name, ci.asset.name)}
+                                          </span>
+                                        </div>
+                                      }
                                     />
-                                  )}
-                                  <span className="truncate max-w-[80px]">
-                                    {getAssetDisplayName(ci.item.name, ci.asset.name)}
-                                  </span>
-                                </div>
-                              ))}
-                              {/* 场景 */}
-                              {sceneItem && (
-                                <div
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 max-w-full text-[10px] shrink-0"
-                                  title={`场景: ${getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}`}
-                                >
-                                  {sceneItem.item.imageUrl && (
-                                    <img
-                                      src={resolveMediaUrl(sceneItem.item.imageUrl) || ""}
-                                      alt="scene"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewImageUrl(sceneItem.item.imageUrl!);
-                                        setPreviewImageTitle(`场景: ${getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}`);
-                                      }}
-                                      className="h-3.5 w-3.5 rounded-xs object-cover cursor-zoom-in hover:scale-110 active:scale-95 transition-transform"
+                                    <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                                      <span className="font-semibold">角色: {getAssetDisplayName(ci.item.name, ci.asset.name)}</span>
+                                      {ci.asset.description && (
+                                        <span className="text-[10px] opacity-80 leading-normal break-words mt-0.5">
+                                          {ci.asset.description}
+                                        </span>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))}
+                                {/* 场景 */}
+                                {sceneItem && (
+                                  <Tooltip>
+                                    <TooltipTrigger
+                                      render={
+                                        <div className="flex flex-col items-center gap-1 group/asset cursor-pointer select-none shrink-0">
+                                          <div className="relative">
+                                            {sceneItem.item.imageUrl ? (
+                                              <img
+                                                src={resolveMediaUrl(sceneItem.item.imageUrl) || ""}
+                                                alt="scene"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setPreviewImageUrl(sceneItem.item.imageUrl!);
+                                                  setPreviewImageTitle(`场景: ${getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}`);
+                                                }}
+                                                className="h-8 w-8 rounded-lg object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
+                                              />
+                                            ) : (
+                                              <div className="h-8 w-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-500 dark:text-green-400 shrink-0">
+                                                <MapPin className="h-4 w-4" />
+                                              </div>
+                                            )}
+                                          </div>
+                                          <span className="text-[10px] font-semibold text-green-500 dark:text-green-400 truncate max-w-[56px] leading-tight text-center mt-0.5">
+                                            {getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}
+                                          </span>
+                                        </div>
+                                      }
                                     />
-                                  )}
-                                  <span className="truncate max-w-[80px]">
-                                    {getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* 道具 */}
-                              {propItems.map((pi, idx) => (
-                                <div
-                                  key={`prop-${idx}`}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 max-w-full text-[10px] shrink-0"
-                                  title={`道具: ${getAssetDisplayName(pi.item.name, pi.asset.name)}`}
-                                >
-                                  {pi.item.imageUrl && (
-                                    <img
-                                      src={resolveMediaUrl(pi.item.imageUrl) || ""}
-                                      alt="prop"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewImageUrl(pi.item.imageUrl!);
-                                        setPreviewImageTitle(`道具: ${getAssetDisplayName(pi.item.name, pi.asset.name)}`);
-                                      }}
-                                      className="h-3.5 w-3.5 rounded-xs object-cover cursor-zoom-in hover:scale-110 active:scale-95 transition-transform"
+                                    <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                                      <span className="font-semibold">场景: {getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}</span>
+                                      {sceneItem.asset.description && (
+                                        <span className="text-[10px] opacity-80 leading-normal break-words mt-0.5">
+                                          {sceneItem.asset.description}
+                                        </span>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {/* 道具 */}
+                                {propItems.map((pi, idx) => (
+                                  <Tooltip key={`prop-${idx}`}>
+                                    <TooltipTrigger
+                                      render={
+                                        <div className="flex flex-col items-center gap-1 group/asset cursor-pointer select-none shrink-0">
+                                          <div className="relative">
+                                            {pi.item.imageUrl ? (
+                                              <img
+                                                src={resolveMediaUrl(pi.item.imageUrl) || ""}
+                                                alt="prop"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setPreviewImageUrl(pi.item.imageUrl!);
+                                                  setPreviewImageTitle(`道具: ${getAssetDisplayName(pi.item.name, pi.asset.name)}`);
+                                                }}
+                                                className="h-8 w-8 rounded-lg object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
+                                              />
+                                            ) : (
+                                              <div className="h-8 w-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 dark:text-amber-400 shrink-0">
+                                                <Package className="h-4 w-4" />
+                                              </div>
+                                            )}
+                                          </div>
+                                          <span className="text-[10px] font-semibold text-amber-500 dark:text-amber-400 truncate max-w-[56px] leading-tight text-center mt-0.5">
+                                            {getAssetDisplayName(pi.item.name, pi.asset.name)}
+                                          </span>
+                                        </div>
+                                      }
                                     />
-                                  )}
-                                  <span className="truncate max-w-[80px]">
-                                    {getAssetDisplayName(pi.item.name, pi.asset.name)}
-                                  </span>
-                                </div>
-                              ))}
+                                    <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                                      <span className="font-semibold">道具: {getAssetDisplayName(pi.item.name, pi.asset.name)}</span>
+                                      {pi.asset.description && (
+                                        <span className="text-[10px] opacity-80 leading-normal break-words mt-0.5">
+                                          {pi.asset.description}
+                                        </span>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))}
+ 
+                                {/* 右侧内联加号 */}
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <div className="flex flex-col items-center gap-1 group/add cursor-pointer select-none opacity-40 group-hover/cell:opacity-100 transition-opacity duration-200 ml-1 shrink-0">
+                                        <div className="h-8 w-8 rounded-full border border-dashed border-muted-foreground/35 bg-muted/5 group-hover/add:bg-primary/5 group-hover/add:border-primary/50 group-hover/add:text-primary flex items-center justify-center text-muted-foreground/45 transition-all duration-200 shrink-0">
+                                          <Plus className="h-4 w-4" />
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-muted-foreground/60 group-hover/add:text-primary transition-colors leading-tight text-center mt-0.5">
+                                          添加
+                                        </span>
+                                      </div>
+                                    }
+                                  />
+                                  <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                                    添加或编辑关联资产
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                             </div>
                           );
                         })()}
@@ -550,26 +632,43 @@ export function StoryboardTableView({
                 <div className="px-1 py-2 flex items-center justify-center gap-0.5">
                   {/* 生成视频 - 需要有画面 */}
                   {(item.imageUrl || item.generatedImageUrl) && onVideoGen && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onVideoGen(item.id);
-                      }}
-                      className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-all"
-                      title="生成视频"
-                    >
-                      <Video className="h-3 w-3" />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onVideoGen(item.id);
+                            }}
+                            className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-all"
+                          >
+                            <Video className="h-3 w-3" />
+                          </button>
+                        }
+                      />
+                      <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                        生成视频
+                      </TooltipContent>
+                    </Tooltip>
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteItem(item.id);
-                    }}
-                    className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteItem(item.id);
+                          }}
+                          className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      }
+                    />
+                    <TooltipContent className={TOOLTIP_CONTENT_CLASS}>
+                      删除镜头
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             );
