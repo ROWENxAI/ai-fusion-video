@@ -191,6 +191,7 @@ export interface StoryboardItemUpdateReq {
   duration?: number;
   sortOrder?: number;
   imageUrl?: string;
+  videoPrompt?: string | null;
   status?: number;
   characterIds?: string | null;
   sceneAssetItemId?: number | null;

@@ -787,7 +787,6 @@ public class AgentScopeAssistantService {
                     .toolName(toolName)
                     .description(subAgentToolDef.getDescription())
                     .forwardEvents(true) // 关键：转发子 Agent 事件到父 Hook 链
-                    .session(mysqlSession) // 使用 MySQL 持久化子 Agent 会话
                     .build();
 
             // 注册子 Agent 工具名到 Hook，以便自动建立 parentToolCallId 映射

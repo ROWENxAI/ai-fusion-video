@@ -34,7 +34,10 @@ public class StoryboardItemCreateReqVO {
 
     private String generatedVideoUrl;
 
+    private String videoPrompt;
+
     private String shotType;
+
 
     private BigDecimal duration;
 

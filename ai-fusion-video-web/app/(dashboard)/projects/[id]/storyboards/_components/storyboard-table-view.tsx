@@ -8,6 +8,7 @@ import type { StoryboardItem } from "@/lib/api/storyboard";
 import { EditableCell } from "./editable-cell";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const TOOLTIP_CONTENT_CLASS = "flex flex-col gap-0.5 items-start text-left max-w-[220px] px-2.5 py-1.5 rounded-lg text-[11px] bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 text-zinc-900 dark:text-zinc-50 shadow-lg [&_.bg-foreground]:bg-white/85 [&_.fill-foreground]:fill-white/85 dark:[&_.bg-foreground]:bg-zinc-900/85 dark:[&_.fill-foreground]:fill-zinc-900/85";
 
@@ -42,6 +43,7 @@ type StoryboardTableField =
   | "shotNumber"
   | "imageUrl"
   | "generatedVideoUrl"
+  | "videoPrompt"
   | "shotType"
   | "duration"
   | "cameraAngle"
@@ -63,22 +65,23 @@ interface ColumnDef {
 }
 
 const COLUMNS: ColumnDef[] = [
-  { label: "镜号", field: "shotNumber", initW: 56, minW: 40 },
+  { label: "镜号", field: "shotNumber", initW: 48, minW: 40 },
   { label: "画面", field: "imageUrl", initW: 80, minW: 60, isImage: true },
   { label: "视频", field: "generatedVideoUrl", initW: 80, minW: 60, isVideo: true },
+  { label: "视频提示词", field: "videoPrompt", initW: 200, minW: 80, multiline: true },
   { label: "关联资产", field: "assets", initW: 160, minW: 100 },
-  { label: "景别", field: "shotType", initW: 72, minW: 50 },
-  { label: "时长", field: "duration", initW: 56, minW: 40 },
+  { label: "景别", field: "shotType", initW: 64, minW: 50 },
+  { label: "时长", field: "duration", initW: 48, minW: 40 },
   { label: "摄像机角度", field: "cameraAngle", initW: 90, minW: 60 },
   { label: "运镜", field: "cameraMovement", initW: 80, minW: 50 },
   {
     label: "分镜内容",
     field: "content",
-    initW: 200,
+    initW: 240,
     minW: 100,
     multiline: true,
   },
-  { label: "对白", field: "dialogue", initW: 180, minW: 80, multiline: true },
+  { label: "对白", field: "dialogue", initW: 200, minW: 80, multiline: true },
   { label: "声音", field: "sound", initW: 100, minW: 60 },
   { label: "备注", field: "remark", initW: 100, minW: 60 },
 ];
@@ -86,6 +89,34 @@ const COLUMNS: ColumnDef[] = [
 /** 固定列宽 */
 const DRAG_COL_W = 28;
 const ACTION_COL_W = 56;
+
+/** localStorage key for persisting column widths */
+const COL_WIDTHS_STORAGE_KEY = "fusion-storyboard-col-widths";
+
+/** 从 localStorage 读取保存的列宽（列数变化时自动 fallback） */
+function loadSavedColWidths(): number[] {
+  try {
+    const raw = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length === COLUMNS.length) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return COLUMNS.map((c) => c.initW);
+}
+
+/** 保存列宽到 localStorage */
+function saveColWidths(widths: number[]) {
+  try {
+    localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(widths));
+  } catch {
+    // ignore
+  }
+}
 
 export function StoryboardTableView({
   items,
@@ -116,9 +147,7 @@ export function StoryboardTableView({
   >;
   onEditAssets?: (item: StoryboardItem) => void;
 }) {
-  const [colWidths, setColWidths] = useState<number[]>(
-    COLUMNS.map((c) => c.initW)
-  );
+  const [colWidths, setColWidths] = useState<number[]>(loadSavedColWidths);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewImageTitle, setPreviewImageTitle] = useState<string>("");
@@ -225,8 +254,10 @@ export function StoryboardTableView({
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
         setResizingCol(null);
-        // 最终提交到 state
-        setColWidths([...liveWidths]);
+        // 最终提交到 state 并持久化
+        const finalWidths = [...liveWidths];
+        setColWidths(finalWidths);
+        saveColWidths(finalWidths);
       };
 
       document.addEventListener("mousemove", onMove);
@@ -366,19 +397,16 @@ export function StoryboardTableView({
                           item.imageUrl && "cursor-zoom-in hover:border-primary/40 transition-colors"
                         )}
                       >
-                        {item.imageUrl ? (
-                          <>
-                            <img
-                              src={resolveMediaUrl(item.imageUrl) || ""}
-                              alt="画面"
-                              className="w-full h-full object-cover transition-transform group-hover/img:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/25 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all">
-                              <ZoomIn className="h-3.5 w-3.5 text-white/90" />
-                            </div>
-                          </>
-                        ) : (
-                          <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                        <SafeImage
+                          src={resolveMediaUrl(item.imageUrl)}
+                          alt="画面"
+                          fallbackType="image"
+                          className="w-full h-full object-cover transition-transform group-hover/img:scale-105"
+                        />
+                        {item.imageUrl && (
+                          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/25 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all pointer-events-none">
+                            <ZoomIn className="h-3.5 w-3.5 text-white/90" />
+                          </div>
                         )}
                       </div>
                     ) : col.isVideo ? (
@@ -458,22 +486,19 @@ export function StoryboardTableView({
                                       render={
                                         <div className="flex flex-col items-center gap-1 group/asset cursor-pointer select-none shrink-0">
                                           <div className="relative">
-                                            {ci.item.imageUrl ? (
-                                              <img
-                                                src={resolveMediaUrl(ci.item.imageUrl) || ""}
-                                                alt="avatar"
-                                                onClick={(e) => {
+                                            <SafeImage
+                                              src={resolveMediaUrl(ci.item.imageUrl)}
+                                              alt="avatar"
+                                              fallbackType="avatar"
+                                              onClick={(e) => {
+                                                if (ci.item.imageUrl) {
                                                   e.stopPropagation();
-                                                  setPreviewImageUrl(ci.item.imageUrl!);
+                                                  setPreviewImageUrl(ci.item.imageUrl);
                                                   setPreviewImageTitle(`角色: ${getAssetDisplayName(ci.item.name, ci.asset.name)}`);
-                                                }}
-                                                className="h-8 w-8 rounded-full object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
-                                              />
-                                            ) : (
-                                              <div className="h-8 w-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
-                                                <User className="h-4 w-4" />
-                                              </div>
-                                            )}
+                                                }
+                                              }}
+                                              className="h-8 w-8 rounded-full object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
+                                            />
                                           </div>
                                           <span className="text-[10px] font-semibold text-blue-500 dark:text-blue-400 truncate max-w-[56px] leading-tight text-center mt-0.5">
                                             {getAssetDisplayName(ci.item.name, ci.asset.name)}
@@ -498,22 +523,19 @@ export function StoryboardTableView({
                                       render={
                                         <div className="flex flex-col items-center gap-1 group/asset cursor-pointer select-none shrink-0">
                                           <div className="relative">
-                                            {sceneItem.item.imageUrl ? (
-                                              <img
-                                                src={resolveMediaUrl(sceneItem.item.imageUrl) || ""}
-                                                alt="scene"
-                                                onClick={(e) => {
+                                            <SafeImage
+                                              src={resolveMediaUrl(sceneItem.item.imageUrl)}
+                                              alt="scene"
+                                              fallbackType="scene"
+                                              onClick={(e) => {
+                                                if (sceneItem.item.imageUrl) {
                                                   e.stopPropagation();
-                                                  setPreviewImageUrl(sceneItem.item.imageUrl!);
+                                                  setPreviewImageUrl(sceneItem.item.imageUrl);
                                                   setPreviewImageTitle(`场景: ${getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}`);
-                                                }}
-                                                className="h-8 w-8 rounded-lg object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
-                                              />
-                                            ) : (
-                                              <div className="h-8 w-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-500 dark:text-green-400 shrink-0">
-                                                <MapPin className="h-4 w-4" />
-                                              </div>
-                                            )}
+                                                }
+                                              }}
+                                              className="h-8 w-8 rounded-lg object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
+                                            />
                                           </div>
                                           <span className="text-[10px] font-semibold text-green-500 dark:text-green-400 truncate max-w-[56px] leading-tight text-center mt-0.5">
                                             {getAssetDisplayName(sceneItem.item.name, sceneItem.asset.name)}
@@ -538,22 +560,19 @@ export function StoryboardTableView({
                                       render={
                                         <div className="flex flex-col items-center gap-1 group/asset cursor-pointer select-none shrink-0">
                                           <div className="relative">
-                                            {pi.item.imageUrl ? (
-                                              <img
-                                                src={resolveMediaUrl(pi.item.imageUrl) || ""}
-                                                alt="prop"
-                                                onClick={(e) => {
+                                            <SafeImage
+                                              src={resolveMediaUrl(pi.item.imageUrl)}
+                                              alt="prop"
+                                              fallbackType="prop"
+                                              onClick={(e) => {
+                                                if (pi.item.imageUrl) {
                                                   e.stopPropagation();
-                                                  setPreviewImageUrl(pi.item.imageUrl!);
+                                                  setPreviewImageUrl(pi.item.imageUrl);
                                                   setPreviewImageTitle(`道具: ${getAssetDisplayName(pi.item.name, pi.asset.name)}`);
-                                                }}
-                                                className="h-8 w-8 rounded-lg object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
-                                              />
-                                            ) : (
-                                              <div className="h-8 w-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 dark:text-amber-400 shrink-0">
-                                                <Package className="h-4 w-4" />
-                                              </div>
-                                            )}
+                                                }
+                                              }}
+                                              className="h-8 w-8 rounded-lg object-cover cursor-zoom-in hover:scale-110 active:scale-95 hover:shadow-md transition-all duration-200 border border-border/40 shrink-0"
+                                            />
                                           </div>
                                           <span className="text-[10px] font-semibold text-amber-500 dark:text-amber-400 truncate max-w-[56px] leading-tight text-center mt-0.5">
                                             {getAssetDisplayName(pi.item.name, pi.asset.name)}
@@ -711,9 +730,10 @@ export function StoryboardTableView({
             >
               <X className="h-5 w-5" />
             </button>
-            <img
-              src={resolveMediaUrl(previewImageUrl) || ""}
+            <SafeImage
+              src={resolveMediaUrl(previewImageUrl)}
               alt={previewImageTitle}
+              fallbackType="image"
               className="max-w-full max-h-[80vh] rounded-lg object-contain shadow-2xl border border-white/10 select-none pointer-events-none"
             />
             <p className="text-white/90 text-xs font-medium px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/5">

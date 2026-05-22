@@ -94,13 +94,15 @@ export function NotificationPanel({ anchorRef }: NotificationPanelProps) {
       exit={{ opacity: 0, y: -8, scale: 0.96 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-        "fixed z-61 w-80",
+        "fixed z-61",
+        // mobile: nearly full width with safe insets
+        "left-3 right-3 md:left-auto md:right-[var(--panel-right)] md:w-80",
         "rounded-2xl border border-border/40",
         "bg-card/95 backdrop-blur-xl",
         "shadow-2xl shadow-black/20",
         "overflow-hidden"
       )}
-      style={{ top: position.top, right: position.right }}
+      style={{ top: position.top, "--panel-right": `${position.right}px` } as React.CSSProperties}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
         <h3 className="text-sm font-semibold">AI 任务</h3>

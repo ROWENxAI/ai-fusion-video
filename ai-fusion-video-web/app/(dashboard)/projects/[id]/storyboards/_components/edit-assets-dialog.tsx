@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/api/client";
 import type { AssetWithItems, AssetItem } from "@/lib/api/asset";
 import type { StoryboardItem } from "@/lib/api/storyboard";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface EditItemAssetsDialogProps {
   open: boolean;
@@ -222,9 +223,10 @@ export function EditItemAssetsDialog({
                       {/* Image Thumbnail */}
                       <div className="w-full aspect-[4/3] bg-muted/20 overflow-hidden relative flex items-center justify-center border-b border-border/10">
                         {item.imageUrl ? (
-                          <img
-                            src={resolveMediaUrl(item.imageUrl) || ""}
+                          <SafeImage
+                            src={resolveMediaUrl(item.imageUrl)}
                             alt={item.name || item.asset.name}
+                            fallbackType="avatar"
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
@@ -300,9 +302,10 @@ export function EditItemAssetsDialog({
                       {/* Image Thumbnail */}
                       <div className="w-full aspect-[4/3] bg-muted/20 overflow-hidden relative flex items-center justify-center border-b border-border/10">
                         {item.imageUrl ? (
-                          <img
-                            src={resolveMediaUrl(item.imageUrl) || ""}
+                          <SafeImage
+                            src={resolveMediaUrl(item.imageUrl)}
                             alt={item.name || item.asset.name}
+                            fallbackType="scene"
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
@@ -378,9 +381,10 @@ export function EditItemAssetsDialog({
                       {/* Image Thumbnail */}
                       <div className="w-full aspect-[4/3] bg-muted/20 overflow-hidden relative flex items-center justify-center border-b border-border/10">
                         {item.imageUrl ? (
-                          <img
-                            src={resolveMediaUrl(item.imageUrl) || ""}
+                          <SafeImage
+                            src={resolveMediaUrl(item.imageUrl)}
                             alt={item.name || item.asset.name}
+                            fallbackType="prop"
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
@@ -438,9 +442,10 @@ export function EditItemAssetsDialog({
             >
               <X className="h-5 w-5" />
             </button>
-            <img
-              src={resolveMediaUrl(previewImage.url) || ""}
+            <SafeImage
+              src={resolveMediaUrl(previewImage.url)}
               alt={previewImage.title}
+              fallbackType="image"
               className="max-w-full max-h-[80vh] rounded-lg object-contain shadow-2xl border border-white/10"
             />
             <p className="text-white/95 text-xs font-medium px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/5">

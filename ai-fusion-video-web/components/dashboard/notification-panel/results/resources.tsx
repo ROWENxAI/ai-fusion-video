@@ -176,9 +176,9 @@ export function MutationResult({
   const obj = data as Record<string, unknown>;
   const status = obj.status as string | undefined;
   const message = obj.message as string | undefined;
-  const id = obj.id ?? obj.episodeId ?? obj.scriptId;
 
   const toolLabels: Record<string, string> = {
+    save_script_scene_items: "场次",
     save_scene_items: "场次",
     update_script_info: "剧本信息",
     update_script_scene: "场次",
@@ -188,6 +188,27 @@ export function MutationResult({
     update_asset_image: "资产图片",
   };
   const label = toolLabels[toolName] || "数据";
+
+  // 动态决定显示的 ID 及其前缀 label，避免一刀切地将集 ID 等当作“场次 ID”或“数据 ID”
+  let displayId: unknown = undefined;
+  let idLabel = label;
+
+  if (obj.scriptEpisodeId !== undefined) {
+    idLabel = "剧本集";
+    displayId = obj.scriptEpisodeId;
+  } else if (obj.storyboardEpisodeId !== undefined) {
+    idLabel = "分镜集";
+    displayId = obj.storyboardEpisodeId;
+  } else if (obj.episodeId !== undefined) {
+    idLabel = "分集";
+    displayId = obj.episodeId;
+  } else if (obj.scriptId !== undefined) {
+    idLabel = "剧本";
+    displayId = obj.scriptId;
+  } else if (obj.id !== undefined) {
+    idLabel = label;
+    displayId = obj.id;
+  }
 
   return (
     <div className="space-y-1">
@@ -199,9 +220,9 @@ export function MutationResult({
         )}
         {message || (status === "error" ? `${label}操作失败` : `${label}已更新`)}
       </p>
-      {id !== undefined && (
+      {displayId !== undefined && (
         <p className="text-[10px] text-muted-foreground/60">
-          {label} ID: {String(id)}
+          {idLabel} ID: {String(displayId)}
         </p>
       )}
       {obj.sceneCount !== undefined && (
@@ -372,7 +393,7 @@ export function SaveEpisodeResult({ data }: { data: unknown }) {
   const message = obj.message as string | undefined;
   const episodeNumber = obj.episodeNumber as number | undefined;
   const title = obj.title as string | undefined;
-  const episodeId = obj.episodeId;
+  const episodeId = obj.scriptEpisodeId ?? obj.episodeId;
   const version = obj.episode_version;
 
   return (

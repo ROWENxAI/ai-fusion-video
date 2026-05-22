@@ -17,10 +17,10 @@ export function StoryboardResult({
   if (isSave) {
     const status = obj.status as string | undefined;
     const message = obj.message as string | undefined;
-    const sceneId = obj.sceneId as number | undefined;
+    const sceneId = (obj.storyboardSceneId ?? obj.sceneId) as number | undefined;
     const sceneNumber = obj.sceneNumber as string | undefined;
     const shotCount = obj.shotCount as number | undefined;
-    const episodeId = obj.episodeId as number | undefined;
+    const episodeId = (obj.storyboardEpisodeId ?? obj.episodeId) as number | undefined;
     const sceneCount = obj.sceneCount as number | undefined;
 
     return (

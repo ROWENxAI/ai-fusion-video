@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/api/client";
 import { assetApi } from "@/lib/api/asset";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { SafeImage } from "@/components/ui/safe-image";
 
 import type { Asset, AssetItem } from "@/lib/api/asset";
 import type { StoryboardItem, Storyboard, StoryboardScene } from "@/lib/api/storyboard";
@@ -250,9 +251,11 @@ function SceneAssetPanel({
   };
 
   /** 批量生视频确认 */
-  const handleVideoGenConfirm = (selectedItemIds: number[]) => {
+  const handleVideoGenConfirm = (selectedItemIds: number[], promptOnly?: boolean) => {
     addPipeline({
-      label: `批量生视频 (${selectedItemIds.length} 个镜头)`,
+      label: promptOnly
+        ? `批量生成视频提示词 (${selectedItemIds.length} 个镜头)`
+        : `批量生视频 (${selectedItemIds.length} 个镜头)`,
       projectId,
       request: {
         agentType: "storyboard_video_gen",
@@ -260,6 +263,7 @@ function SceneAssetPanel({
         context: {
           selectedStoryboardItemIds: selectedItemIds,
           storyboardId: storyboard.id,
+          promptOnly: promptOnly || false,
         },
       },
       onComplete: () => {
@@ -437,9 +441,10 @@ function AssetItemGroup({
             >
               {item.imageUrl ? (
                 <>
-                  <img
-                    src={resolveMediaUrl(item.imageUrl) || ""}
+                  <SafeImage
+                    src={resolveMediaUrl(item.imageUrl)}
                     alt={item.name || item.parentName}
+                    fallbackType={type === "character" ? "avatar" : type === "scene" ? "scene" : "prop"}
                     className="w-full h-full object-cover transition-transform group-hover/img:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/25 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all">
@@ -661,13 +666,14 @@ function ItemDetail({
             "rounded-lg overflow-hidden border border-border/20 relative group/preview cursor-zoom-in hover:border-primary/40 transition-colors"
           )}
         >
-          <img
+          <SafeImage
             src={
-              (resolveMediaUrl(item.generatedImageUrl ||
+              resolveMediaUrl(item.generatedImageUrl ||
                 item.imageUrl ||
-                item.referenceImageUrl) as string)
+                item.referenceImageUrl)
             }
             alt="镜头画面"
+            fallbackType="image"
             className="w-full aspect-video object-cover transition-transform group-hover/preview:scale-102"
           />
           <div className="absolute inset-0 bg-black/0 group-hover/preview:bg-black/25 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-all">
@@ -764,9 +770,10 @@ function ItemDetail({
             <ImageIcon className="h-3 w-3" /> 参考图
           </h4>
           <div className="rounded-lg overflow-hidden border border-border/20">
-            <img
-              src={resolveMediaUrl(item.referenceImageUrl) || ""}
+            <SafeImage
+              src={resolveMediaUrl(item.referenceImageUrl)}
               alt="参考图"
+              fallbackType="image"
               className="w-full aspect-video object-cover"
             />
           </div>
@@ -913,9 +920,10 @@ function LinkedAssetGroup({
                             type === "character" ? "rounded-full" : "rounded-lg"
                           )}
                         >
-                          <img
-                            src={resolveMediaUrl(imageUrl) || ""}
+                          <SafeImage
+                            src={resolveMediaUrl(imageUrl)}
                             alt={displayName}
+                            fallbackType={type === "character" ? "avatar" : type === "scene" ? "scene" : "prop"}
                             className="w-full h-full object-cover transition-transform duration-200 group-hover/asset:scale-110"
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover/coverimg:bg-black/25 flex items-center justify-center opacity-0 group-hover/coverimg:opacity-100 transition-all">
@@ -1103,9 +1111,10 @@ export function StoryboardRefPanel({
             >
               <X className="h-5 w-5" />
             </button>
-            <img
-              src={resolveMediaUrl(previewImageUrl) || ""}
+            <SafeImage
+              src={resolveMediaUrl(previewImageUrl)}
               alt={previewImageTitle}
+              fallbackType="image"
               className="max-w-full max-h-[80vh] rounded-lg object-contain shadow-2xl border border-white/10 select-none pointer-events-none"
             />
             <p className="text-white/90 text-xs font-medium px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/5">

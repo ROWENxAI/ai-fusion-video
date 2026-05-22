@@ -120,6 +120,10 @@ export default function StoryboardTabPage() {
   const [sidebarSelection, setSidebarSelection] = useState<SidebarSelection>({
     type: "episode",
   });
+  const sidebarSelectionRef = useRef(sidebarSelection);
+  useEffect(() => {
+    sidebarSelectionRef.current = sidebarSelection;
+  }, [sidebarSelection]);
 
   // 移动端侧边栏状态
   const [leftSheetOpen, setLeftSheetOpen] = useState(false);
@@ -144,6 +148,27 @@ export default function StoryboardTabPage() {
 
   // 当前选中集的合成状态
   const [currentEpisode, setCurrentEpisode] = useState<StoryboardEpisode | null>(null);
+
+  // 当前选中的 episodeId（episode 或 scene 选择都会有）
+  const currentEpisodeId =
+    sidebarSelection.type === "episode" || sidebarSelection.type === "scene"
+      ? sidebarSelection.episodeId ?? null
+      : null;
+
+  // 拉取当前集详情（含合成状态）
+  const refreshCurrentEpisode = useCallback(async () => {
+    if (!currentEpisodeId) {
+      setCurrentEpisode(null);
+      return;
+    }
+    try {
+      const ep = await storyboardApi.getEpisode(currentEpisodeId);
+      setCurrentEpisode(ep);
+    } catch (err) {
+      console.error("加载集详情失败:", err);
+    }
+  }, [currentEpisodeId]);
+
   const [composedPreviewUrl, setComposedPreviewUrl] = useState<string | null>(null);
   const [runningComposeEpisodeIds, setRunningComposeEpisodeIds] = useState<number[]>([]);
   const [submittingComposeEpisodeIds, setSubmittingComposeEpisodeIds] = useState<number[]>([]);
@@ -245,15 +270,55 @@ export default function StoryboardTabPage() {
     setPanelExpanded,
   ]);
 
+  const refreshStoryboardData = useCallback(async () => {
+    try {
+      void loadProjectAssets();
+      void refreshCurrentEpisode();
+
+      const list = await storyboardApi.list(projectId);
+      let activeStoryboard = storyboard;
+      if (list.length > 0) {
+        activeStoryboard = list[0];
+        setStoryboard(list[0]);
+      } else {
+        setStoryboard(null);
+        setSceneGroups([]);
+        return;
+      }
+
+      const selection = sidebarSelectionRef.current;
+      let scenes: StoryboardScene[];
+      if (selection.type === "episode" || selection.type === "scene") {
+        if (selection.episodeId) {
+          scenes = await storyboardApi.listScenesByEpisode(selection.episodeId);
+        } else {
+          scenes = [];
+        }
+      } else {
+        scenes = await storyboardApi.listScenesByStoryboard(activeStoryboard.id);
+      }
+
+      const groups = await Promise.all(
+        scenes.map(async (scene) => {
+          const items = await storyboardApi.listItemsByScene(scene.id);
+          return { scene, items };
+        })
+      );
+      setSceneGroups(groups);
+    } catch (err) {
+      console.error("完整刷新分镜页数据失败:", err);
+    }
+  }, [projectId, storyboard, loadProjectAssets, refreshCurrentEpisode]);
+
   // AI 工具执行后自动刷新
   const storyboardsInvalidation = usePipelineStore((s) => s.invalidation.storyboards);
   const storyboardsInvRef = useRef(storyboardsInvalidation);
   useEffect(() => {
     if (storyboardsInvRef.current !== storyboardsInvalidation) {
       storyboardsInvRef.current = storyboardsInvalidation;
-      loadStoryboard();
+      refreshStoryboardData();
     }
-  }, [storyboardsInvalidation, loadStoryboard]);
+  }, [storyboardsInvalidation, refreshStoryboardData]);
 
   // 加载场次分组数据
   const loadSceneGroups = useCallback(
@@ -560,25 +625,7 @@ export default function StoryboardTabPage() {
     }
   };
 
-  // 当前选中的 episodeId（episode 或 scene 选择都会有）
-  const currentEpisodeId =
-    sidebarSelection.type === "episode" || sidebarSelection.type === "scene"
-      ? sidebarSelection.episodeId ?? null
-      : null;
 
-  // 拉取当前集详情（含合成状态）
-  const refreshCurrentEpisode = useCallback(async () => {
-    if (!currentEpisodeId) {
-      setCurrentEpisode(null);
-      return;
-    }
-    try {
-      const ep = await storyboardApi.getEpisode(currentEpisodeId);
-      setCurrentEpisode(ep);
-    } catch (err) {
-      console.error("加载集详情失败:", err);
-    }
-  }, [currentEpisodeId]);
 
   useEffect(() => {
     refreshCurrentEpisode();
@@ -908,7 +955,7 @@ export default function StoryboardTabPage() {
               <button
                 onClick={() => handleSetViewMode("card")}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all hidden sm:flex",
+                  "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
                   viewMode === "card"
                     ? "bg-background shadow-sm text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -986,7 +1033,7 @@ export default function StoryboardTabPage() {
                 className={cn(
                   "scroll-mt-4 p-5 rounded-2xl border transition-all duration-500 ease-out",
                   activeSceneId === scene.id
-                    ? "bg-violet-500/[0.015] border-violet-500/15 shadow-[0_2px_8px_-3px_rgba(139,92,246,0.04)] dark:bg-violet-500/[0.005]"
+                    ? "bg-violet-500/1.5 border-violet-500/15 shadow-[0_2px_8px_-3px_rgba(139,92,246,0.04)] dark:bg-violet-500/0.5"
                     : "border-transparent bg-transparent"
                 )}
                 onClick={() => setActiveSceneId(scene.id)}
