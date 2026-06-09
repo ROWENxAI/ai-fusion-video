@@ -15,6 +15,7 @@ interface ImageInputProps {
   previewHeight?: string;
   placeholder?: string;
   uploadSubDir?: string;
+  beforeUpload?: () => boolean;
 }
 
 /**
@@ -27,6 +28,7 @@ export default function ImageInput({
   previewHeight = "h-32",
   placeholder = "粘贴图片链接...",
   uploadSubDir = "images",
+  beforeUpload,
 }: ImageInputProps) {
   const [mode, setMode] = useState<"url" | "upload">("upload");
   const [uploading, setUploading] = useState(false);
@@ -51,6 +53,7 @@ export default function ImageInput({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (beforeUpload && !beforeUpload()) return;
     void handleUpload(file);
   };
 
@@ -58,12 +61,20 @@ export default function ImageInput({
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
+    if (beforeUpload && !beforeUpload()) return;
     void handleUpload(file);
   };
 
   const handleClear = () => {
     onChange("");
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const commitUrl = (rawUrl: string) => {
+    const nextUrl = rawUrl.trim();
+    if (nextUrl !== value) {
+      onChange(nextUrl);
+    }
   };
 
   return (
@@ -154,8 +165,16 @@ export default function ImageInput({
       {/* URL 输入框 */}
       {mode === "url" && (
         <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          key={value || "empty-url"}
+          defaultValue={value}
+          onBlur={(e) => commitUrl(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitUrl(e.currentTarget.value);
+              e.currentTarget.blur();
+            }
+          }}
           placeholder={placeholder}
           className="h-7 text-xs"
         />
