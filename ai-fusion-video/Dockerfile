@@ -1,4 +1,4 @@
-# ============================================
+﻿# ============================================
 # 融光 - 后端 Dockerfile (多阶段构建)
 # ============================================
 
@@ -12,11 +12,11 @@ COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 # 兼容 Windows CRLF 行尾（即使不经过 Git checkout）
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
-RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -B
+RUN --mount=type=cache,id=maven,target=/root/.m2 ./mvnw dependency:go-offline -B
 
 # 复制源码并打包
 COPY src/ src/
-RUN --mount=type=cache,target=/root/.m2 ./mvnw package -DskipTests -B
+RUN --mount=type=cache,id=maven,target=/root/.m2 ./mvnw package -DskipTests -B
 
 # ---------- 阶段 2: 运行 ----------
 FROM eclipse-temurin:21-jre
