@@ -64,6 +64,8 @@ public class AiAgentRegistry {
                 registerStoryboardFrameExecutorAgent();
                 registerStoryboardVideoGenAgent();
                 registerStoryboardVideoExecutorAgent();
+                registerMangaScriptAgent();
+                registerDramaAdaptAgent();
         }
 
         // ========== 各 Agent 定义 ==========
@@ -609,7 +611,75 @@ public class AiAgentRegistry {
         /**
          * 注册 Agent 定义
          */
-        public void register(AiAgentDefinition definition) {
+
+        /**
+         * 注册网文改编漫剧 Agent
+         */
+        private void registerDramaAdaptAgent() {
+                register(AiAgentDefinition.builder()
+                                .type("drama_adapt")
+                                .name("网文改编漫剧")
+                                .toolNames(List.of(
+                                                "list_my_projects", "get_project",
+                                                "get_project_script", "update_script_info",
+                                                "save_script_episode", "save_script_scene_items",
+                                                "list_project_assets", "batch_create_assets",
+                                                "query_asset_metadata", "add_asset_item",
+                                                "get_generation_model_capabilities"))
+                                .systemPrompt(loadPrompt("drama-adapt.system.md"))
+                                .instructionTemplate("""
+                                                <task_context>
+                                                <project_id>{projectId}</project_id>
+                                                <script_id>{scriptId}</script_id>
+                                                </task_context>""")
+                                .defaultUserMessage("请将小说改编为漫剧剧本")
+                                .enableTools(1)
+                                .build());
+        }
+
+        /**
+         * 注册漫剧脚本与分镜生成 Agent
+         */
+        private void registerMangaScriptAgent() {
+                register(AiAgentDefinition.builder()
+                                .type("manga_script")
+                                .name("漫剧脚本与分镜")
+                                .toolNames(List.of(
+                                                "list_my_projects", "get_project",
+                                                "get_project_script", "update_script_info",
+                                                "save_script_episode", "save_script_scene_items",
+                                                "list_project_assets", "batch_create_assets",
+                                                "query_asset_metadata", "add_asset_item",
+                                                "list_project_storyboards", "get_storyboard",
+                                                "insert_storyboard_item", "get_storyboard_scene_items",
+                                                "save_storyboard_scene_shots",
+                                                "get_generation_model_capabilities",
+                                                "generate_image"))
+                                .subAgentTools(List.of(
+                                                AiAgentDefinition.SubAgentToolDef.builder()
+                                                                .toolName("episode_script_creator")
+                                                                .displayName("为集创作场景")
+                                                                .description("为单集剧本创作场景和对白。")
+                                                                .refAgentType("episode_script_creator")
+                                                                .build(),
+                                                AiAgentDefinition.SubAgentToolDef.builder()
+                                                                .toolName("episode_storyboard_writer")
+                                                                .displayName("为集生成分镜")
+                                                                .description("为单集剧本生成AI绘画分镜。")
+                                                                .refAgentType("episode_storyboard_writer")
+                                                                .build()))
+                                .systemPrompt(loadPrompt("manga-script.system.md"))
+                                .instructionTemplate("""
+                                                <task_context>
+                                                <project_id>{projectId}</project_id>
+                                                <script_id>{scriptId}</script_id>
+                                                </task_context>""")
+                                .defaultUserMessage("请创作漫剧脚本和AI分镜")
+                                .enableTools(1)
+                                .build());
+        }
+
+                public void register(AiAgentDefinition definition) {
                 agentMap.put(definition.getType(), definition);
         }
 

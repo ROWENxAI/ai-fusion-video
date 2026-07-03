@@ -16,6 +16,7 @@ import {
   Clapperboard,
   PlayCircle,
   AlertCircle,
+  Map,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { VideoPreviewDialog } from "@/components/dashboard/video-preview-dialog";
@@ -42,12 +43,13 @@ import {
   buildDefaultBatchFramePrompt,
 } from "./_components/storyboard-frame-reference-dialog";
 import { CreateStoryboardDialog } from "./_components/create-dialog";
+import { StoryboardCanvas } from "./_components/canvas/storyboard-canvas";
 import { EditItemAssetsDialog } from "./_components/edit-assets-dialog";
 import { assetApi } from "@/lib/api/asset";
 import { useFullWidth } from "@/lib/hooks/use-layout";
 import { useProject } from "../project-context";
 
-type ViewMode = "table" | "card";
+type ViewMode = "table" | "card" | "canvas";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "fusion-storyboard-sidebar-collapsed";
 

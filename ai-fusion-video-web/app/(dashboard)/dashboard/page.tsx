@@ -6,6 +6,8 @@ import { useAuthStore } from "@/lib/store/auth-store";
 import { projectApi, type Project } from "@/lib/api/project";
 import { assetApi, type Asset, type AssetPageResp } from "@/lib/api/asset";
 import {
+  BookOpen,
+  Clapperboard,
   FolderKanban,
   Images,
   Sparkles,
@@ -247,7 +249,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* ========== 快捷操作 ========== */}
-      <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 mb-8">
+      <motion.div variants={itemVariants} className="grid grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
         <QuickAction
           icon={FolderKanban}
           label="新建项目"
@@ -271,6 +273,22 @@ export default function DashboardPage() {
           color="text-purple-400"
           bg="bg-purple-500/10"
           onClick={() => router.push("/projects")}
+        />
+        <QuickAction
+          icon={BookOpen}
+          label={"网文改编漫剧"}
+          desc={"小说一键改编剧本"}
+          color="text-rose-400"
+          bg="bg-rose-500/10"
+          onClick={() => router.push("/projects?agent=drama_adapt")}
+        />
+        <QuickAction
+          icon={Clapperboard}
+          label={"漫剧脚本与分镜"}
+          desc={"生成脚本+AI分镜提示词"}
+          color="text-cyan-400"
+          bg="bg-cyan-500/10"
+          onClick={() => router.push("/projects?agent=manga_script")}
         />
       </motion.div>
 
