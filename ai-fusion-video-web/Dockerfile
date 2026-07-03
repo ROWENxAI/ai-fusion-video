@@ -1,4 +1,4 @@
-# ============================================
+﻿# ============================================
 # 融光 - 前端 Dockerfile (多阶段构建)
 # ============================================
 
@@ -9,7 +9,7 @@ WORKDIR /build
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable pnpm
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
 # ---------- 阶段 2: 构建 ----------
 FROM node:20-bookworm-slim AS builder
@@ -25,7 +25,7 @@ ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN corepack enable pnpm
-RUN --mount=type=cache,target=/build/.next/cache pnpm build
+RUN --mount=type=cache,id=next-cache,target=/build/.next/cache pnpm build
 
 # ---------- 阶段 3: 运行 ----------
 FROM node:20-bookworm-slim
